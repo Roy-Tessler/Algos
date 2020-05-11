@@ -16,3 +16,12 @@ var fib = function(N) {
 
   return fib(N - 1) + fib(N - 2);
 };
+
+var fib2 = function(n, memo = [undefined, 1, 1]) {
+  if (n === 0) return 0;
+  if (memo[n] !== undefined) return memo[n];
+  let res = fib(n - 1, memo) + fib(n - 2, memo);
+  memo[n] = res;
+
+  return res;
+};
