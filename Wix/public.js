@@ -22,30 +22,7 @@ $w.onReady(() => {
   });
 });
 
-// $w.onReady( () => {
-//   $w("#picksData").onBeforeSave( () => {
-//  let filterWeekNo = $w("#filtersData").getCurrentItem().weekNo;
-
-//  let user = wixUsers.currentUser;
-//  let userId = user.id;
-//  let isLoggedIn = user.loggedIn;
-//         console.log("gotuser");
-
-//     user.getEmail()
-//         .then( (email) => {
-//  let userEmail = email;
-//             $w("#picksData").setFieldValue("userEmail",email);
-//             $w("#picksData").save();
-//         } );
-
-//     $w("#picksData").setFieldValue("weekNo",filterWeekNo);
-//     $w("#picksData").save();
-//     console.log("Continuing save");
-//   } );
-
-// });
-
-$w.onReady(async function() {
+$w.onReady(function() {
   // let user = wixUsers.currentUser;
   // let userId = user.id; // "r5cme-6fem-485j-djre-4844c49"
   // let isLoggedIn = user.loggedIn; // true
@@ -59,10 +36,6 @@ $w.onReady(async function() {
       $w("#userEmai").value = results.items[0].loginEmail;
       $w("#messagesWrite").setFieldValue("Email", $w("#userEmai").value);
     });
-  // 	$w("#messagesList").onItemReady(($item, itemData, index) => {
-  // $item("#messageBody").text = itemData.messages;
-  // $item("#datePosted").text = itemData._createdDate.toLocaleString();
-  // });
   wixData
     .query("Messages")
     .find()
@@ -79,6 +52,7 @@ export async function followButton_click(event) {
     .find();
   let ownerId = messageRow.items[0]._owner;
   let ownerEmail = messageRow.items[0].Email;
+  let may = $w.at(event.context);
 
   let user = wixUsers.currentUser;
 
@@ -86,7 +60,17 @@ export async function followButton_click(event) {
     .query("following")
     .eq("_id", user.id)
     .find();
-  console.log("Btuun ID", $w("#followButton"));
+
+  if (may("#followButton").label === "Follow") {
+    may("#followButton").label = "Unfollow";
+    follow(followRow, user, ownerEmail);
+  } else {
+    may("#followButton").label = "Follow";
+    unfollow(followRow, user, ownerEmail);
+  }
+}
+
+function follow(followRow, user, ownerEmail) {
   if (!followRow.items.length) {
     let toInsert = {
       _id: user.id,
@@ -95,14 +79,29 @@ export async function followButton_click(event) {
     wixData.insert("following", toInsert);
   } else {
     let rowBeforeUpdate = followRow.items[0].follow;
-    let idx = rowBeforeUpdate.indexOf(ownerEmail);
-    if (idx !== -1) {
-      rowBeforeUpdate = rowBeforeUpdate.splice(idx, 1);
-      $w("#followButton").label = "Unfollow";
-    }
     let toUpdate = {
       _id: user.id,
       follow: [...rowBeforeUpdate, ownerEmail]
+    };
+
+    wixData.update("following", toUpdate);
+  }
+}
+
+function unfollow(followRow, user, OwnerEmail) {
+  if (followRow.items.length === 1) {
+    let toEmpty = {
+      _id: user.id,
+      follow: []
+    };
+    wixData.insert("following", toEmpty);
+  } else {
+    let rowBeforeUpdate = followRow.items[0].follow;
+    let idx = rowBeforeUpdate.indexOf(OwnerEmail);
+    let spliced = rowBeforeUpdate.splice(idx, 1);
+    let toUpdate = {
+      _id: user.id,
+      follow: [...rowBeforeUpdate]
     };
 
     wixData.update("following", toUpdate);
