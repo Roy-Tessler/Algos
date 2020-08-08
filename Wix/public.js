@@ -23,11 +23,6 @@ $w.onReady(() => {
 });
 
 $w.onReady(function() {
-  // let user = wixUsers.currentUser;
-  // let userId = user.id; // "r5cme-6fem-485j-djre-4844c49"
-  // let isLoggedIn = user.loggedIn; // true
-  // let email = await user.getEmail()
-
   wixData
     .query("Members/PrivateMembersData")
     .eq("_id", wixUsers.currentUser.id)
@@ -79,6 +74,9 @@ function follow(followRow, user, ownerEmail) {
     wixData.insert("following", toInsert);
   } else {
     let rowBeforeUpdate = followRow.items[0].follow;
+    if (rowBeforeUpdate.includes(ownerEmail)) {
+      return;
+    }
     let toUpdate = {
       _id: user.id,
       follow: [...rowBeforeUpdate, ownerEmail]
@@ -89,21 +87,26 @@ function follow(followRow, user, ownerEmail) {
 }
 
 function unfollow(followRow, user, OwnerEmail) {
-  if (followRow.items.length === 1) {
+  if (followRow.items[0].follow.length === 1) {
     let toEmpty = {
       _id: user.id,
       follow: []
     };
-    wixData.insert("following", toEmpty);
+    wixData.update("following", toEmpty);
   } else {
     let rowBeforeUpdate = followRow.items[0].follow;
     let idx = rowBeforeUpdate.indexOf(OwnerEmail);
     let spliced = rowBeforeUpdate.splice(idx, 1);
     let toUpdate = {
       _id: user.id,
-      follow: [...rowBeforeUpdate]
+      follow: [...spliced]
     };
 
     wixData.update("following", toUpdate);
   }
 }
+
+// let user = wixUsers.currentUser;
+// let userId = user.id; // "r5cme-6fem-485j-djre-4844c49"
+// let isLoggedIn = user.loggedIn; // true
+// let email = await user.getEmail()
