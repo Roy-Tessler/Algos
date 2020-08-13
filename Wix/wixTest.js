@@ -3,15 +3,21 @@ import wixData from "wix-data";
 import wixUsers from "wix-users";
 import wixLocation from "wix-location";
 import wixWindow from "wix-window";
+import * as realtime from "wix-realtime";
 
-function getData() {
-  let query = wixData.query("Messages");
-  return query
+async function getData() {
+  let firstQuery = await wixData
+    .query("Members/PrivateMembersData")
+    .eq("_id", wixUsers.currentUser.id)
+    .find();
+  $w("#userEmai").value = firstQuery.items[0].loginEmail;
+  $w("#messagesWrite").setFieldValue("Email", $w("#userEmai").value);
+  let query = await wixData
+    .query("Messages")
     .limit(1000)
-    .find()
-    .then(result => {
-      return result.items;
-    });
+    .find();
+  console.log("new query items......", query.items);
+  return await query.items;
 }
 
 export async function getNotificationData() {
@@ -60,6 +66,7 @@ export async function notify(ownerEmail) {
     showBadge();
   }
 }
+
 $w.onReady(function() {
   wixData
     .query("Members/PrivateMembersData")
@@ -109,16 +116,12 @@ export async function followButton_click(event) {
 }
 
 export async function follow(followRow, userId, ownerEmail) {
-  let options = {
-    suppressAuth: true,
-    suppressHooks: true
-  };
   if (!followRow.items.length) {
     let toInsert = {
       _id: userId,
       follow: [ownerEmail]
     };
-    wixData.insert("following", toInsert, options);
+    wixData.insert("following", toInsert);
   } else {
     let rowBefore = followRow.items[0].follow;
     if (rowBefore.includes(ownerEmail)) {
@@ -146,7 +149,7 @@ async function unfollow(followRow, userId, OwnerEmail) {
     let spliced = rowBeforeUpdate.splice(idx, 1);
     let toUpdate = {
       _id: userId,
-      follow: [...spliced]
+      follow: [...rowBeforeUpdate]
     };
     wixData.update("following", toUpdate);
   }
@@ -178,4 +181,14 @@ export function submitButton_click(event) {
   if (!isLoggedIn) {
     $w("#submitButton").enabled = false;
   }
+}
+
+$w.onReady(function() {
+  const channel = { name: "new-message" };
+  realtime.subscribe(channel, newMsg);
+});
+
+async function newMsg({ payload }) {
+  let data = await getData();
+  $w("#messagesRead").refresh();
 }
